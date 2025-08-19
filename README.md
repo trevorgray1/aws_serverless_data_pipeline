@@ -1,75 +1,236 @@
+Got it 👍 — here’s the updated README with a **Teardown Section** added so a developer can fully clean up their AWS environment when they’re done testing.
+
+---
+
+````markdown
 # AWS Serverless Data Pipeline Project
 
-## Overview
-This project demonstrates building a serverless data processing pipeline on AWS using Lambda, S3, API Gateway, and RDS/PostgreSQL. It includes Python scripts, SQL setup, Terraform infrastructure, and sample data.
+## 📌 Overview
+This project is a **serverless file upload and metadata storage pipeline** built on AWS.  
+It allows users to upload files to an S3 bucket, trigger a Lambda function, and store metadata in an RDS PostgreSQL database.  
 
-## Weekly Plan
+We are building this step-by-step, with Terraform managing all AWS resources.  
 
-### Week 1: AWS CLI and Python Setup
-- Install AWS CLI v2 and configure it
-- Setup Python virtual environment and install boto3
-- Create an S3 bucket
-- Run test scripts to upload/download files from S3
+---
 
-### Week 2: Build Lambda Functions in Python
-- Write Lambda functions triggered by S3 upload events
-- Implement simple data processing inside Lambda (e.g., parse CSV)
-- Test Lambda invocation manually
+## ✅ Current Components
 
-### Week 3: Store Processed Data in Database
-- Setup AWS RDS PostgreSQL or DynamoDB tables
-- Extend Lambda to insert processed data into the database
-- Write basic SQL queries to validate data
+### 1. S3 Bucket
+- Bucket name: `aws-serverless-app-tgray`
+- Stores all uploaded files.
+- Access managed via IAM policies (least privilege enforced).
 
-### Week 4: API Gateway Setup
-- Create REST API endpoints using AWS API Gateway
-- Connect API Gateway to Lambda functions for querying data
+### 2. Python Utility Scripts
+Located in `scripts/`:
+- `upload_file.py` → Uploads a file to S3.
+  ```bash
+  python scripts/upload_file.py aws-serverless-app-tgray ./path/to/localfile.txt
+````
 
-### Week 5: Query Data via API
-- Implement Lambda functions to query the database and return JSON responses
-- Test API endpoints with tools like Postman or curl
+* `download_file.py` → Downloads a file from S3.
 
-### Week 6: (Optional) Automate Deployment with Terraform
-- Learn basic Terraform concepts and syntax
-- Deploy your infrastructure (S3, Lambda, API Gateway, RDS) using Terraform scripts
+  ```bash
+  python scripts/download_file.py aws-serverless-app-tgray ./path/to/localfile.txt
+  ```
 
-### Week 7: Add Monitoring and Logging
-- Enable CloudWatch logging for Lambda functions
-- Add Python logging and error handling inside Lambda
-- Set up CloudWatch alarms for error rates
+### 3. Terraform Infrastructure
 
-### Week 8: Final Testing, Documentation, and Cleanup
-- Perform end-to-end testing of the full pipeline
-- Write usage documentation and setup instructions
-- Clean up code, add comments, and prepare for future enhancements
+Terraform manages AWS resources.
 
-## File Overview
-- `lambda_functions/`: Python Lambda scripts
-- `sql/`: PostgreSQL setup scripts
-- `terraform/`: Terraform files (optional)
-- `data/`: Sample CSV data files
-- `README.md`: This file
+#### Current Terraform Resources:
 
-## Getting Started
+* `S3 Bucket` for file storage.
+* `IAM Roles/Policies` for Lambda and RDS access.
+* `Lambda Function` that gets triggered on file upload to S3.
+* `RDS PostgreSQL Instance` (db.t3.micro) for metadata storage.
 
-### AWS CLI Setup
-- Install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
-- Configure with `aws configure` (you'll need access key, secret key, region)
-- Verify setup: `aws s3 ls`
+  * Database name: `serverlessdb`
+  * Username: `dbadmin`
+  * Password: stored in `terraform.tfvars`
 
-### Python Environment Setup
-- Install Python 3.8+
-- Create virtual environment: `python3 -m venv venv`
-- Activate it:
-  - Linux/macOS: `source venv/bin/activate`
-  - Windows: `venv\Scripts\activate`
-- Install boto3: `pip install boto3`
+#### Terraform Notes
 
-### S3 Bucket Test Script (lambda_functions/s3_test.py)
-This script uploads and downloads a file to S3 to verify access.
+* Run `terraform init -upgrade` on changes.
+* Run `terraform apply` to provision resources.
+* Add the following to `.gitignore`:
 
-Run example:
-```bash
-python s3_test.py --upload data/sample_data.csv --bucket your-bucket-name
+  ```
+  .venv/
+  __pycache__/
+  .terraform/
+  terraform.tfstate
+  terraform.tfstate.backup
+  *.zip
+  ```
+
+### 4. RDS Schema
+
+Schema automatically initialized via Terraform (`db-init.tf`):
+
+```sql
+CREATE TABLE IF NOT EXISTS files (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    filename TEXT NOT NULL,
+    bucket TEXT NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT NOW()
+);
 ```
+
+---
+
+## 🧪 Testing Progress
+
+* ✅ S3 bucket created and accessible.
+* ✅ Python upload/download scripts working.
+* ✅ Terraform applied successfully.
+* ✅ Lambda set up with S3 trigger (currently basic).
+* ✅ RDS PostgreSQL created and schema initialized.
+* ✅ Verified DB connection with `psql`.
+
+---
+
+## 🚀 Next Steps
+
+1. Wire Lambda to insert file metadata into the RDS `files` table.
+2. Expand schema if needed (users, tags, etc.).
+3. Add API Gateway + authentication for controlled access.
+4. Add CI/CD pipeline for automatic deployment.
+
+---
+
+## 🛠 Tech Stack
+
+* **AWS**: S3, Lambda, RDS (Postgres), IAM
+* **Terraform**: Infrastructure as Code
+* **Python**: boto3 utilities + Lambda handler
+* **PostgreSQL**: Metadata database
+
+---
+
+## 👨‍💻 Getting Started (Fresh Developer Setup)
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/YOUR_ORG/aws-serverless-data-pipeline.git
+cd aws-serverless-data-pipeline
+```
+
+### 2. Configure AWS Credentials
+
+Make sure your AWS CLI is configured with credentials that have access to S3, Lambda, RDS, and IAM.
+
+```bash
+aws configure
+```
+
+### 3. Python Environment
+
+Create a virtual environment and install dependencies:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Mac/Linux
+.venv\Scripts\activate      # Windows PowerShell
+
+pip install -r requirements.txt
+```
+
+### 4. Terraform Setup
+
+Initialize and apply the Terraform code:
+
+```bash
+cd terraform
+terraform init -upgrade
+terraform apply
+```
+
+Enter `yes` when prompted. This provisions the S3 bucket, Lambda, IAM roles, and RDS instance.
+
+### 5. Database Connection
+
+Once Terraform completes, you can connect to the RDS PostgreSQL database:
+
+```bash
+psql -h <rds-endpoint> -U dbadmin -d serverlessdb
+```
+
+Password is stored in `terraform.tfvars`.
+
+### 6. Test File Upload/Download
+
+Upload a file:
+
+```bash
+python scripts/upload_file.py aws-serverless-app-tgray ./home/trevor/TEST.txt
+```
+
+Download it back:
+
+```bash
+python scripts/download_file.py aws-serverless-app-tgray ./home/trevor/TEST.txt
+```
+
+---
+
+## 🧹 Teardown (Clean Up Resources)
+
+When you’re finished testing, clean up AWS resources to avoid ongoing charges.
+
+1. Empty the S3 bucket:
+
+   ```bash
+   aws s3 rm s3://aws-serverless-app-tgray --recursive
+   ```
+
+2. Destroy Terraform-managed resources:
+
+   ```bash
+   cd terraform
+   terraform destroy
+   ```
+
+   Enter `yes` when prompted.
+
+3. Deactivate your Python virtual environment:
+
+   ```bash
+   deactivate
+   ```
+
+At this point, your AWS account is clean and you won’t be billed for unused resources.
+
+---
+
+## 📂 Project Structure
+
+```
+.
+├── README.md              # Project documentation
+├── requirements.txt       # Python dependencies
+├── scripts/               # Python S3 utility scripts
+│   ├── upload_file.py
+│   └── download_file.py
+├── terraform/             # Infrastructure as Code
+│   ├── main.tf
+│   ├── providers.tf
+│   ├── s3.tf
+│   ├── lambda.tf
+│   ├── rds.tf
+│   ├── db-init.tf
+│   └── variables.tf
+└── .gitignore
+```
+
+---
+
+## 📝 Notes
+
+* `.gitignore` is set up to exclude sensitive/state files.
+* RDS credentials are stored in `terraform.tfvars` (do not commit this file).
+* Lambda zip package is generated by Terraform automatically.
+
+```
+
 

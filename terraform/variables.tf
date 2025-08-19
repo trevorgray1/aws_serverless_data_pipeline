@@ -13,3 +13,9 @@ variable "project_name" {
   description = "Project name prefix for resource naming"
   type        = string
 }
+
+variable "db_password" {
+  description = "Postgres DB password"
+  type        = string
+  sensitive   = true
+}
