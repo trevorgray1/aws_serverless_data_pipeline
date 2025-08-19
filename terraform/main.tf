@@ -4,12 +4,10 @@ provider "aws" {
 
 # S3 bucket
 resource "aws_s3_bucket" "project_bucket" {
-  bucket = "aws-serverless-app-tgray"
-
-  tags = {
-    Project = "ServerlessDataPipeline"
-  }
+  bucket = var.bucket_name
+  tags = { Project = "ServerlessDataPipeline" }
 }
+
 
 # Block public access
 resource "aws_s3_bucket_public_access_block" "block_public" {
@@ -46,14 +44,15 @@ resource "aws_iam_role" "lambda_exec_role" {
   })
 }
 
-# Lambda role policy (least privilege)
-resource "aws_iam_role_policy" "lambda_s3_policy" {
-  name = "lambda_s3_policy"
+# Lambda permissions policy (S3, CloudWatch, and VPC/ENI)
+resource "aws_iam_role_policy" "lambda_full_policy" {
+  name = "lambda_full_policy"
   role = aws_iam_role.lambda_exec_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      # S3 access
       {
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:PutObject"]
@@ -72,6 +71,7 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
           }
         }
       },
+      # CloudWatch logs
       {
         Effect   = "Allow"
         Action   = [
@@ -80,10 +80,23 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
           "logs:PutLogEvents"
         ]
         Resource = "arn:aws:logs:*:*:*"
+      },
+      # VPC / ENI permissions
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface",
+          "ec2:AssignPrivateIpAddresses",
+          "ec2:UnassignPrivateIpAddresses"
+        ]
+        Resource = "*"
       }
     ]
   })
 }
+
 
 # Zip Lambda code
 data "archive_file" "lambda_zip" {
@@ -96,7 +109,7 @@ data "archive_file" "lambda_zip" {
 resource "aws_lambda_function" "s3_processor" {
   function_name = "s3_file_processor"
   role          = aws_iam_role.lambda_exec_role.arn
-  handler       = "handler.lambda_handler"
+  handler       = "S3_to_rds.handler.lambda_handler"
   runtime       = "python3.11"
   filename      = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256

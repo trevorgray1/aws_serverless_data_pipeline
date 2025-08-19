@@ -1,25 +1,20 @@
-resource "null_resource" "init_db" {
-  depends_on = [aws_db_instance.app_db]
+#############################
+# Invoke init_db Lambda after RDS is ready
+#############################
+
+resource "null_resource" "invoke_init_db" {
+  # Ensure this runs after both RDS and the Lambda exist
+  depends_on = [aws_db_instance.app_db, aws_lambda_function.init_db]
 
   provisioner "local-exec" {
     command = <<EOT
-      PGPASSWORD=${var.db_password} psql \
-        --host=${aws_db_instance.app_db.address} \
-        --port=5432 \
-        --username=appuser \
-        --dbname=serverlessdb \
-        -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;
-            CREATE TABLE IF NOT EXISTS file_metadata (
-              file_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-              file_name TEXT NOT NULL,
-              s3_key TEXT NOT NULL,
-              bucket_name TEXT NOT NULL,
-              upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-              file_size BIGINT,
-              file_type TEXT,
-              uploader TEXT,
-              processed_time TIMESTAMP
-            );"
+      aws lambda invoke \
+        --function-name ${aws_lambda_function.init_db.function_name} \
+        --region ${var.aws_region} \
+        /tmp/init_db_output.json
     EOT
+    environment = {
+      AWS_PROFILE = var.aws_profile
+    }
   }
 }

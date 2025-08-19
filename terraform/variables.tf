@@ -5,8 +5,9 @@ variable "aws_region" {
 }
 
 variable "bucket_name" {
-  description = "Name of the S3 bucket"
+  description = "S3 bucket used by Lambdas"
   type        = string
+  default     = "aws-serverless-app-tgray"
 }
 
 variable "project_name" {
@@ -18,4 +19,7 @@ variable "db_password" {
   description = "Postgres DB password"
   type        = string
   sensitive   = true
+}
+variable "aws_profile" {
+  default = "default"
 }

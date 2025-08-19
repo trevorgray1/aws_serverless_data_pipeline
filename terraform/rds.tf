@@ -10,13 +10,13 @@ resource "aws_db_subnet_group" "app_db_subnets" {
 resource "aws_db_instance" "app_db" {
   identifier             = "serverless-app-db"
   engine                 = "postgres"
-  engine_version         = "15.3"
+  engine_version         = "15.13"
   instance_class         = "db.t3.micro"
   allocated_storage      = 20
   max_allocated_storage  = 100
   db_name                = "serverlessdb"
   username               = "appuser"
-  password               = var.db_password
+  password               = random_password.db_password.result
   parameter_group_name   = "default.postgres15"
   skip_final_snapshot    = true
   db_subnet_group_name   = aws_db_subnet_group.app_db_subnets.name
@@ -64,4 +64,14 @@ resource "aws_security_group" "lambda_sg" {
   tags = {
     Name = "app-lambda-sg"
   }
+}
+
+#############################
+#############################
+# Random password for RDS user
+#############################
+resource "random_password" "db_password" {
+  length          = 16
+  special         = true
+  override_special = "!@#$%&*()-_=+"
 }

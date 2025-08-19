@@ -1,23 +1,22 @@
-import boto3
+import os
 import sys
+import boto3
 
-# S3 client
 s3 = boto3.client('s3')
 
-def upload_file(bucket_name, file_path, object_name=None):
-    if object_name is None:
-        object_name = file_path.split("/")[-1]  # default to filename
-    try:
-        s3.upload_file(file_path, bucket_name, object_name)
-        print(f"✅ Uploaded {file_path} to s3://{bucket_name}/{object_name}")
-    except Exception as e:
-        print(f"❌ Error uploading file: {e}")
+# Check arguments
+if len(sys.argv) != 3:
+    print("Usage: python upload_file.py <bucket_name> <local_file_path>")
+    sys.exit(1)
 
-if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python upload_file.py <bucket_name> <file_path>")
-        sys.exit(1)
+bucket_name = sys.argv[1]
+local_file_path = sys.argv[2]
 
-    bucket = sys.argv[1]
-    file_path = sys.argv[2]
-    upload_file(bucket, file_path)
+# Construct the S3 key in the uploads/ folder
+key = f"uploads/{os.path.basename(local_file_path)}"
+
+try:
+    s3.upload_file(local_file_path, bucket_name, key)
+    print(f"✅ Uploaded {local_file_path} to s3://{bucket_name}/{key}")
+except Exception as e:
+    print(f"❌ Error uploading file: {e}")
